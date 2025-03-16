@@ -1,0 +1,17 @@
+{
+    "files.associations": {
+        "unordered_map": "cpp",
+        "iosfwd": "cpp",
+        "ostream": "cpp",
+        "system_error": "cpp",
+        "new": "cpp",
+        "*.tcc": "cpp",
+        "deque": "cpp",
+        "string": "cpp",
+        "vector": "cpp",
+        "iostream": "cpp",
+        "fstream": "cpp",
+        "bitset": "cpp",
+        "array": "cpp"
+    }
+}
