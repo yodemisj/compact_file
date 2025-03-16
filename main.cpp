@@ -44,34 +44,36 @@ void getHuffmanCodes(Node* root, unordered_map<char, string>& huffmanCodes, stri
     getHuffmanCodes(root->right, huffmanCodes, code + "1");
 }
 
-char getCharByHuffmanCode(vector<char> &code, Node* huffmanTree) {
+string getStringByHuffmanCode(string &code, Node* huffmanTree) {
     Node * current = huffmanTree;
     size_t codeSize = code.size();
+    string result;
+    int latestIdx=0;
+
     for (size_t i = 0; i < codeSize; i++) {
         char c = code[i];
+        
         if(current->isLeaf) {
-            code.erase(code.begin(), code.begin() + i);
-            return current->c;
+            result += current->c;
+            latestIdx = i;
+            current = huffmanTree;
         }
+        
         if (c == '0') {
-            if (current->left) 
-            current = current->left;
-            else 
-            return '?';
+            if (current->left) current = current->left;
         } else {
-            if (current->right) 
-                current = current->right;
-            else 
-                return '?';
+            if (current->right) current = current->right;
         }
     }
     
     if(current->isLeaf) {
         code.erase(code.begin(), code.end());
-        return current->c;
+        result += current->c;
     } else {
-        return '?';
+        code.erase(code.begin(), code.begin() + latestIdx);
     }
+
+    return result;
 }
 
 Node* huffman(unordered_map<char, int> freqMap) {
@@ -162,6 +164,7 @@ void descompactFile(const string sourcePath, const string destPath) {
     ifstream inputFile(sourcePath, ios::binary);
     ofstream outputFile(destPath);
     char c, character;
+    string stringByHuffman;
     vector<char> buffer;
     buffer.reserve(8);
     unsigned char paddingBits;
@@ -186,26 +189,16 @@ void descompactFile(const string sourcePath, const string destPath) {
     
     while (inputFile.read(&byte, 1)) {
         bitStream += bitset<8>(byte).to_string();
-    }
-
-    if (paddingBits > 0) {
-        bitStream.erase(bitStream.end() - paddingBits, bitStream.end());
-    }
-
-    Node* currentNode = root;
-    for (char bit : bitStream) {
-        if (bit == '0') {
-            currentNode = currentNode->left;
-        } else {
-            currentNode = currentNode->right;
+        
+        if (inputFile.peek() == EOF && paddingBits > 0) {
+            bitStream.erase(bitStream.end() - paddingBits, bitStream.end());
         }
-
-        if (currentNode->isLeaf) {
-            outputFile.put(currentNode->c);
-            currentNode = root;
-        }
+        
+        stringByHuffman = getStringByHuffmanCode(bitStream, root);
+        
+        outputFile.write(stringByHuffman.c_str(), stringByHuffman.size());
     }
-    
+
     inputFile.close();
     outputFile.close();
 }
@@ -213,9 +206,9 @@ void descompactFile(const string sourcePath, const string destPath) {
 /* FIM FILE */
 
 int main (){
-    unordered_map<char, int> freqMap = calcFreq("teste.xlsx");
+    unordered_map<char, int> freqMap = calcFreq("lorem_ipsum.txt");
     Node* root = huffman(freqMap);
-    compactFile("teste.xlsx", "teste.huff", root, freqMap);
-    descompactFile("teste.huff", "teste1.xlsx");
+    compactFile("lorem_ipsum.txt", "teste.huff", root, freqMap);
+    descompactFile("teste.huff", "lorem_ipsum_Out.txt");
     return 0;
 }
