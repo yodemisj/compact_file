@@ -14,22 +14,43 @@ unordered_map<char, int> calcFreq(const string& path) {
     return freqMap;
 }
 
-void compactFile(const string& sourcePath, const string& destPath, Node* huffmanTree, unordered_map<char, int> freqMap) {
-    unordered_map<char, string> huffmanCodes;
-    ifstream inputFile(sourcePath, ios::in);
-    ofstream outputFile(destPath, ios::binary);
-    
-    unsigned char paddingBits = 0;
-    string buffer;
-
-    outputFile.put(0);
+void writeHeader(ofstream& outputFile, const unordered_map<char, int>& freqMap) {
     int mapSize = freqMap.size();
-    outputFile.write(reinterpret_cast<char*>(&mapSize), sizeof(int));
+    outputFile.put(0);
+
+    outputFile.write(reinterpret_cast<const char*>(&mapSize), sizeof(int));
 
     for (const auto& pair : freqMap) {
         outputFile.write(reinterpret_cast<const char*>(&pair.first), sizeof(char));
         outputFile.write(reinterpret_cast<const char*>(&pair.second), sizeof(int));
     }
+}
+
+void writeBitsToFile(ofstream& outputFile, string& buffer) {
+    while (buffer.size() >= 8) {
+        outputFile.put(static_cast<unsigned char>(bitset<8>(buffer.substr(0, 8)).to_ulong()));
+        buffer.erase(0, 8);
+    }
+}
+
+void processPadding(string& buffer, ofstream& outputFile) {
+    unsigned char paddingBits = 0;
+    if (!buffer.empty()) {
+        paddingBits = 8 - buffer.size();
+        buffer.append(paddingBits, '0');
+        outputFile.put(static_cast<unsigned char>(bitset<8>(buffer).to_ulong()));
+    }
+    outputFile.seekp(0);
+    outputFile.put(paddingBits);
+}
+
+void compactFile(const string& sourcePath, const string& destPath, Node* huffmanTree, unordered_map<char, int> freqMap) {
+    unordered_map<char, string> huffmanCodes;
+    ifstream inputFile(sourcePath, ios::in);
+    ofstream outputFile(destPath, ios::binary);
+    string buffer;
+
+    writeHeader(outputFile, freqMap);
 
     getHuffmanCodes(huffmanTree, huffmanCodes);
 
@@ -37,20 +58,10 @@ void compactFile(const string& sourcePath, const string& destPath, Node* huffman
     while (inputFile.get(source)) {
         buffer += huffmanCodes[source];
 
-        while (buffer.size() >= 8) {
-            outputFile.put(static_cast<unsigned char>(bitset<8>(buffer.substr(0, 8)).to_ulong()));
-            buffer.erase(0, 8);
-        }
+        writeBitsToFile(outputFile, buffer);
     }
 
-    if (!buffer.empty()) {
-        paddingBits = 8 - buffer.size();
-        buffer.append(paddingBits, '0');
-        outputFile.put(static_cast<unsigned char>(bitset<8>(buffer).to_ulong()));
-    }
-
-    outputFile.seekp(0);
-    outputFile.put(paddingBits);
+    processPadding(buffer, outputFile);
 
     inputFile.close();
     outputFile.close();
