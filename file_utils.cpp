@@ -44,57 +44,78 @@ void processPadding(string& buffer, ofstream& outputFile) {
     outputFile.put(paddingBits);
 }
 
+void encodeAndWriteHuffmanBits(ifstream& inputFile, ofstream& outputFile, unordered_map<char, string>& huffmanCodes) {
+    string buffer;
+    char source;
+    while (inputFile.get(source)) {
+        buffer += huffmanCodes[source];
+        writeBitsToFile(outputFile, buffer);
+    }
+
+    processPadding(buffer, outputFile);
+}
+
 void compactFile(const string& sourcePath, const string& destPath, Node* huffmanTree, unordered_map<char, int> freqMap) {
     unordered_map<char, string> huffmanCodes;
     ifstream inputFile(sourcePath, ios::in);
     ofstream outputFile(destPath, ios::binary);
-    string buffer;
 
     writeHeader(outputFile, freqMap);
 
     getHuffmanCodes(huffmanTree, huffmanCodes);
 
-    char source;
-    while (inputFile.get(source)) {
-        buffer += huffmanCodes[source];
-
-        writeBitsToFile(outputFile, buffer);
-    }
-
-    processPadding(buffer, outputFile);
+    encodeAndWriteHuffmanBits(inputFile, outputFile, huffmanCodes);
 
     inputFile.close();
     outputFile.close();
 }
 
-void descompactFile(const string& sourcePath, const string& destPath) {
-    ifstream inputFile(sourcePath, ios::binary);
-    ofstream outputFile(destPath);
+void readFrequencyMap(ifstream& inputFile, unordered_map<char, int>& freqMap) {
+    int freq, mapSize = 0;
+    char c;
 
-    unsigned char paddingBits;
-    inputFile.read(reinterpret_cast<char*>(&paddingBits), 1);
-
-    unordered_map<char, int> freqMap;
-    int mapSize;
     inputFile.read(reinterpret_cast<char*>(&mapSize), sizeof(mapSize));
 
     for (int i = 0; i < mapSize; i++) {
-        char c;
-        int freq;
         inputFile.read(&c, 1);
         inputFile.read(reinterpret_cast<char*>(&freq), sizeof(freq));
         freqMap[c] = freq;
     }
+}
+
+void processBitStream(ifstream& inputFile, const unsigned char paddingBits, Node* root, ofstream& outputFile) {
+    string bitStream;
+    string stringByHuffman;
+    char byte;
+    
+    while (inputFile.read(&byte, 1)) {
+        bitStream += bitset<8>(byte).to_string();
+        
+        if (inputFile.peek() == EOF && paddingBits > 0) {
+            bitStream.erase(bitStream.end() - paddingBits, bitStream.end());
+        }
+        
+        stringByHuffman = getStringByHuffmanCode(bitStream, root);
+        
+        outputFile.write(stringByHuffman.c_str(), stringByHuffman.size());
+    }
+}
+
+void descompactFile(const string& sourcePath, const string& destPath) {
+    unordered_map<char, int> freqMap;
+    ifstream inputFile(sourcePath, ios::binary);
+    ofstream outputFile(destPath);
+
+    unsigned char paddingBits;
+
+    inputFile.read(reinterpret_cast<char*>(&paddingBits), 1);
+
+    readFrequencyMap(inputFile, freqMap);
 
     Node* root = huffman(freqMap);
 
-    string bitStream;
-    char byte;
-    while (inputFile.get(byte)) {
-        bitStream += bitset<8>(byte).to_string();
-    }
+    processBitStream(inputFile, paddingBits, root, outputFile);
 
-    outputFile << getStringByHuffmanCode(bitStream, root);
     inputFile.close();
     outputFile.close();
 }
