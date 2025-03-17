@@ -5,8 +5,9 @@ unordered_map<char, int> calcFreq(const string& path) {
     unordered_map<char, int> freqMap;
     ifstream inputFile(path, ios::in);
     char character;
-
-    while (inputFile.get(character)) {
+    inputFile >> noskipws;
+    
+    while (inputFile >> character) {
         freqMap[character]++;
     }
 
@@ -47,7 +48,8 @@ void processPadding(string& buffer, ofstream& outputFile) {
 void encodeAndWriteHuffmanBits(ifstream& inputFile, ofstream& outputFile, unordered_map<char, string>& huffmanCodes) {
     string buffer;
     char source;
-    while (inputFile.get(source)) {
+    inputFile >> noskipws;
+    while (inputFile >> source) {
         buffer += huffmanCodes[source];
         writeBitsToFile(outputFile, buffer);
     }
