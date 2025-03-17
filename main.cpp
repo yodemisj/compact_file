@@ -1,4 +1,5 @@
 #include "file_utils.hpp"
+#include "huffman.hpp"
 
 int main(int argc, char* argv[]) {
     char operation = argv[1][0]; 
