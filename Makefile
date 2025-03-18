@@ -1,4 +1,4 @@
-TARGET = huffman_compressor
+TARGET1 = huffman_compressor
 
 CXX = g++
 
@@ -8,9 +8,9 @@ LDFLAGS = -lstdc++
 
 #verificar o SO
 ifeq ($(OS), Windows_NT)
-OUTPUTMAIN = $(MAIN).exe
+TARGET = $(TARGET1).exe
 else
-OUTPUTMAIN = $(MAIN).out
+TARGET = $(TARGET1).out
 endif
 
 SRCS = main.cpp huffman.cpp file_utils.cpp
